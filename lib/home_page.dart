@@ -20,8 +20,9 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Text(
-          print,
+        child: ElevatedButton(
+          onPressed: () => send(),
+          child: const Text('send'),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -39,5 +40,9 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       print = response;
     });
+  }
+
+  Future send() async {
+    await batteryChannel.invokeMethod('send');
   }
 }

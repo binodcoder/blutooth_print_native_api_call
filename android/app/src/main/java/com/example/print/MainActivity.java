@@ -1,11 +1,17 @@
 package com.example.print;
+
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -13,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -52,8 +59,12 @@ public class MainActivity extends FlutterActivity {
                 String name = arguments.get("name");
                 result.success(name);
                 print();
-
-
+            } else if (call.method.equals("send")) {
+                try {
+                    sendData();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
             } else {
                 result.notImplemented();
             }
@@ -64,7 +75,7 @@ public class MainActivity extends FlutterActivity {
         try {
             findBT();
             openBT();
-            sendData();
+
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -84,6 +95,16 @@ public class MainActivity extends FlutterActivity {
 
             if (!mBluetoothAdapter.isEnabled()) {
                 Intent enableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
                 startActivityForResult(enableBluetooth, 0);
             }
 
@@ -115,6 +136,16 @@ public class MainActivity extends FlutterActivity {
 
             // Standard SerialPortService ID
             UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
             mmSocket = mmDevice.createRfcommSocketToServiceRecord(uuid);
             mmSocket.connect();
             mmOutputStream = mmSocket.getOutputStream();
@@ -167,13 +198,16 @@ public class MainActivity extends FlutterActivity {
                                         System.arraycopy(readBuffer, 0, encodedBytes, 0, encodedBytes.length);
 
                                         // specify US-ASCII encoding
-                                        final String data = new String(encodedBytes, StandardCharsets.US_ASCII);
+                                        final String data;
+                                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                                            data = new String(encodedBytes, StandardCharsets.US_ASCII);
+                                        }
                                         readBufferPosition = 0;
 
                                         // tell the user data were sent to bluetooth printer device
                                         handler.post(new Runnable() {
                                             public void run() {
-                                                myLabel.setText(data);
+//                                                myLabel.setText(data);
                                             }
                                         });
 
@@ -215,6 +249,4 @@ public class MainActivity extends FlutterActivity {
             e.printStackTrace();
         }
     }
-
-
 }
